@@ -1,0 +1,162 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authenticated session operations
+  - name: candidate
+    description: Candidate-owned profile operations
+  - name: recruiter
+    description: Recruiter-only hiring operations
+  - name: agents
+    description: Authenticated AI assistance operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /auth/me:
+    get:
+      operationId: getCurrentSession
+      tags: [auth]
+      security: [{ clerkSession: [] }]
+      responses:
+        "200": { description: Current authenticated user and application role }
+        "401": { description: Unauthenticated }
+  /auth/enroll:
+    post:
+      operationId: enrollRecruiter
+      tags: [auth]
+      summary: Enable the recruiter workspace for the authenticated user
+      security: [{ clerkSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  const: recruiter
+              required: [role]
+      responses:
+        "201": { description: Recruiter workspace enabled }
+        "400": { description: Invalid enrollment request }
+        "401": { description: Unauthenticated }
+  /candidate/profile:
+    get:
+      operationId: getCandidateProfile
+      tags: [candidate]
+      security: [{ clerkSession: [] }]
+      responses:
+        "200": { description: The authenticated candidate's profile }
+        "401": { description: Unauthenticated }
+    put:
+      operationId: updateCandidateProfile
+      tags: [candidate]
+      security: [{ clerkSession: [] }]
+      responses:
+        "200": { description: Updated authenticated candidate profile }
+        "401": { description: Unauthenticated }
+  /candidate/onboarding/resume:
+    post:
+      operationId: parseCandidateResume
+      tags: [candidate]
+      security: [{ clerkSession: [] }]
+      responses:
+        "200": { description: Extracted skills and saved profile }
+        "401": { description: Unauthenticated }
+        "429": { description: Rate limited }
+  /candidate/onboarding/chat:
+    post:
+      operationId: continueCandidateOnboarding
+      tags: [candidate]
+      security: [{ clerkSession: [] }]
+      responses:
+        "200": { description: Next onboarding response and profile updates }
+        "401": { description: Unauthenticated }
+        "429": { description: Rate limited }
+  /agents/chat:
+    post:
+      operationId: chatWithCareerAssistant
+      tags: [agents]
+      security: [{ clerkSession: [] }]
+      responses:
+        "200": { description: Career assistant response }
+        "400": { description: Invalid message }
+        "401": { description: Unauthenticated }
+        "429": { description: Rate limited }
+  /agents/match:
+    post:
+      operationId: matchAuthenticatedCandidate
+      tags: [agents]
+      security: [{ clerkSession: [] }]
+      responses:
+        "200": { description: Candidate-specific job match }
+        "400": { description: Invalid job identifier }
+        "401": { description: Unauthenticated }
+  /agents/bias-audit:
+    get:
+      operationId: getBiasAudit
+      tags: [agents]
+      security: [{ clerkSession: [] }]
+      responses:
+        "200": { description: Current persisted-data audit }
+        "401": { description: Unauthenticated }
+        "403": { description: Recruiter role required }
+  /recruiter/jobs:
+    get:
+      operationId: listRecruiterJobs
+      tags: [recruiter]
+      security: [{ clerkSession: [] }]
+      responses:
+        "200": { description: Persisted jobs }
+        "403": { description: Recruiter role required }
+    post:
+      operationId: createRecruiterJob
+      tags: [recruiter]
+      security: [{ clerkSession: [] }]
+      responses:
+        "201": { description: Persisted job }
+        "400": { description: Invalid job payload }
+        "403": { description: Recruiter role required }
+  /recruiter/candidates:
+    get:
+      operationId: listRecruiterCandidates
+      tags: [recruiter]
+      security: [{ clerkSession: [] }]
+      responses:
+        "200": { description: Persisted candidate profiles }
+        "403": { description: Recruiter role required }
+components:
+  securitySchemes:
+    clerkSession:
+      type: http
+      scheme: bearer
+      bearerFormat: Clerk session token
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status

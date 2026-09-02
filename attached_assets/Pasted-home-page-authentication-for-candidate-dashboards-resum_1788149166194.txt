@@ -1,0 +1,813 @@
+home page , authentication for candidate , dashboards , resume profile background check , resume upload , learning path , payment ,  recruiter dashboard 
+use figma design not looks like the an in first screen see the looks an created like ai website
+
+firstly add authentication and autherisation for the candiadate and recruter and make systtem responsive use sipline to add 3d style like ai model , dahboard in frontend everything had their own interface and all the things was create around the react only and do double check and make the system looks human is created not looks ai created and add some eye ctching evenets we create this frontend for the sap hackfest hackathon so create for that includes home page , authentication for candidate , dashboards , resume profile background check , resume upload , learning path , payment ,  recruiter dashboard 
+
+use figma design not looks like the an in first screen see the looks an created like ai website 
+these views and also add some colour founts more eye catching use more colours but looks professional also and add 3d designs that works like dashboard , use graphs and some other thins at frontend side only write a master prompt for this add some suggestion in which the color fonts looks real huma made not ai and loved by jury also 
+
+Build a premium, production-quality React frontend for our hackathon project:
+
+# RETURNPATH AI
+“Skills should open doors, not close them.”
+
+ReturnPath AI is an AI-powered, skills-first and inclusive recruitment platform connecting candidates and recruiters.
+
+IMPORTANT:
+This stage is FRONTEND ONLY.
+Do NOT build backend, database, authentication APIs, SAP APIs, AI APIs, payment gateways, or real integrations.
+Use realistic mock data and simulated interactions so the entire product feels functional during the demo.
+
+==================================================
+DESIGN DIRECTION
+==================================================
+
+Create a distinctive, human-designed SaaS product — NOT a generic AI dashboard.
+
+Use the existing screenshots as visual inspiration for structure, but significantly improve the UI.
+
+Keep:
+- Premium dark dashboard foundation
+- Strong typography
+- Clean sidebar/navigation
+- Magenta as the primary brand accent
+
+Improve:
+- Add carefully controlled secondary colors
+- More visual hierarchy
+- Better cards
+- Interactive charts
+- Skill visualizations
+- 3D-style elements
+- Micro-interactions
+- Better empty/loading states
+- More storytelling around inclusive hiring
+
+Avoid:
+- Generic purple AI gradients
+- Excessive glassmorphism
+- Rainbow colors
+- Over-rounded cards everywhere
+- Generic Inter/Roboto typography
+- Excessive animations
+- “AI-generated dashboard” appearance
+
+The interface should feel like a product designed by a strong human product designer for an enterprise company.
+
+==================================================
+BRAND & COLORS
+==================================================
+
+Primary:
+- Deep Ink: #0B0D14
+- Surface: #11131D
+- Elevated Surface: #171A27
+- Border: #292D40
+- Primary Magenta: #D946EF
+
+Secondary accents:
+- Cyan: #22D3EE
+- Mint: #34D399
+- Amber: #F5B942
+- Soft Coral: #FB7185
+- Lavender: #A78BFA
+
+Use these intelligently, NOT all at once.
+
+80% of the interface should remain neutral/dark.
+Use accent colors only for:
+- important metrics
+- skill categories
+- charts
+- status indicators
+- CTAs
+- highlights
+
+Create CSS variables for the entire design system.
+
+Typography:
+Use a distinctive modern combination such as:
+- Bricolage Grotesque for major headings
+- DM Sans for body/UI text
+
+Typography should have strong hierarchy:
+large editorial headings + compact dashboard labels + readable body text.
+
+==================================================
+GLOBAL UI
+==================================================
+
+Create:
+
+- Responsive desktop dashboard
+- Tablet layout
+- Mobile-first responsive behavior
+- Collapsible sidebar
+- Top navigation
+- Notifications
+- User profile menu
+- Breadcrumbs
+- Search
+- Tooltips
+- Toast notifications
+- Modal dialogs
+- Drawers
+- Tabs
+- Dropdowns
+- Progress indicators
+- Skeleton loading states
+- Empty states
+- Success/error states
+
+Use Lucide icons.
+
+Add subtle Framer Motion animations:
+- page transitions
+- card entrance
+- hover states
+- number counters
+- chart reveal
+- progress animations
+- modal transitions
+
+Keep animations fast and professional.
+
+==================================================
+CANDIDATE EXPERIENCE
+==================================================
+
+Create a complete Candidate Space.
+
+Sidebar:
+
+Overview
+Skill Passport
+Job Matching
+Learning Path
+Resume Builder
+ReturnPath Copilot
+SAP Architecture
+Settings
+
+--------------------------------
+1. CANDIDATE OVERVIEW
+--------------------------------
+
+Create a strong hero section:
+
+“Your career shouldn't pause because your path did.”
+
+Show:
+- Profile completeness
+- Career readiness score
+- Skill match score
+- Recommended opportunities
+- Current learning progress
+- Next best action
+
+Create a large “Career Signal” card.
+
+Example:
+“Your skills are closer to your target role than you think.”
+
+Show an animated circular score.
+
+Add:
+- Recommended jobs
+- Skill gaps
+- Learning progress
+- Recent activity
+
+Use realistic mock candidate data.
+
+--------------------------------
+2. SKILL PASSPORT
+--------------------------------
+
+Create a highly visual Skill Passport.
+
+Show:
+
+Technical Skills
+Soft Skills
+Projects
+Certifications
+Experience
+Transferable Skills
+
+Create interactive skill cards.
+
+Add a visual “Skill Galaxy” / network visualization where skills appear as connected nodes.
+
+Example:
+
+React
+   ↓
+Frontend Development
+   ↓
+UI Engineering
+   ↓
+Product Development
+
+Allow clicking a skill to reveal:
+- proficiency
+- evidence
+- related skills
+- target role relevance
+
+Add “Verified” indicators.
+
+--------------------------------
+3. JOB MATCHING
+--------------------------------
+
+Create a job discovery experience.
+
+Each job card should show:
+
+Job title
+Company
+Location
+Required skills
+Skill match %
+Experience
+Missing skills
+Why you're a match
+
+Example:
+
+Frontend Engineer
+86% Skill Fit
+
+Strong:
+React
+JavaScript
+REST APIs
+
+Needs improvement:
+Testing
+
+Add CTA:
+“View Match”
+
+The match detail page should visually explain:
+
+YOUR SKILLS
+        ↓
+JOB REQUIREMENTS
+        ↓
+MATCH ANALYSIS
+        ↓
+SKILL GAPS
+        ↓
+RECOMMENDATION
+
+Most importantly:
+Do not make it just a percentage.
+
+Show WHY the candidate received the score.
+
+--------------------------------
+4. LEARNING PATH
+--------------------------------
+
+Create an interactive learning roadmap.
+
+Example:
+
+Current Level
+      ↓
+Skill Gap
+      ↓
+Learning Module
+      ↓
+Practice Project
+      ↓
+Skill Verification
+      ↓
+Job Reassessment
+
+Use a timeline/roadmap design.
+
+Include:
+- Progress
+- Estimated time
+- Skill gained
+- Projects
+- Certifications
+
+Use different accent colors for skill categories.
+
+--------------------------------
+5. RESUME BUILDER
+--------------------------------
+
+Create a beautiful resume builder UI.
+
+Left:
+Editing controls
+
+Center:
+Live resume preview
+
+Right:
+AI suggestions
+
+Sections:
+Summary
+Skills
+Experience
+Projects
+Education
+Certifications
+
+Add:
+“Improve for this role”
+
+Show mock AI suggestions.
+
+--------------------------------
+6. RETURNPATH COPILOT
+--------------------------------
+
+Create a conversational AI interface.
+
+Do NOT connect to a real AI.
+
+Use simulated messages.
+
+Example:
+
+Candidate:
+“Can I apply for this role?”
+
+Copilot:
+“You currently match 82% of the demonstrated skills.
+Your biggest gap is automated testing.
+A focused 10-day learning path could improve your readiness.”
+
+Include suggested prompts:
+- “Why am I not getting shortlisted?”
+- “What skills should I learn?”
+- “Improve my resume”
+- “Find roles matching my skills”
+
+--------------------------------
+7. SAP ARCHITECTURE
+--------------------------------
+
+Create a visually impressive architecture page.
+
+Show a frontend-only interactive architecture diagram:
+
+Candidate / Recruiter
+        ↓
+ReturnPath AI
+        ↓
+AI Agents
+        ↓
+SAP BTP
+        ↓
+SAP SuccessFactors
+        ↓
+SAP HANA Cloud
+        ↓
+Enterprise Workforce Data
+
+Also show:
+
+Skills Discovery Agent
+Market Intelligence Agent
+Learning Path Agent
+Inclusive Matching Agent
+Bias Audit Agent
+Human-in-the-Loop
+
+Make architecture nodes clickable.
+
+Clicking a node opens a small information panel.
+
+This page should be one of the strongest visual parts of the demo.
+
+==================================================
+RECRUITER EXPERIENCE
+==================================================
+
+Create a separate Recruiter Workspace.
+
+Top navigation:
+
+Overview
+Jobs
+Create Role
+Candidates
+Bias Audit
+Analytics
+Subscription
+
+--------------------------------
+1. RECRUITER OVERVIEW
+--------------------------------
+
+Headline:
+
+“Talent, with more context.”
+
+Metrics:
+
+Active Jobs
+Candidates Analyzed
+Shortlisted
+Average Skill Fit
+
+Add animated counters.
+
+Create a Hiring Funnel chart:
+
+Applied
+→ Analyzed
+→ Reviewed
+→ Shortlisted
+→ Hired
+
+Add:
+
+Skill Demand chart
+Candidate quality trend
+Hiring activity
+Top skills
+Fairness indicator
+
+--------------------------------
+2. CREATE ROLE
+--------------------------------
+
+Create a multi-step role creation wizard.
+
+Step 1:
+Job details
+
+Step 2:
+Required skills
+
+Step 3:
+Experience
+
+Step 4:
+Inclusive requirements
+
+Step 5:
+Review
+
+Show a live “Role Intelligence” panel.
+
+Example:
+
+Required Skills
+React █████████ 90%
+JavaScript ████████ 80%
+Testing ██████ 60%
+
+Also detect potentially exclusionary wording in mock data.
+
+--------------------------------
+3. CANDIDATES
+--------------------------------
+
+Create a candidate management dashboard.
+
+Use candidate cards/table with:
+
+Candidate
+Role
+Skill Fit
+Verified Skills
+Experience
+Skill Gap
+Status
+
+Example:
+
+Aisha Rahman
+Product Designer
+94% Skill Fit
+
+Instead of ranking only by resume keywords, visually explain:
+
+Demonstrated Skills
+Projects
+Transferable Skills
+Relevant Experience
+Skill Evidence
+
+Add filters:
+- Skill fit
+- Role
+- Experience
+- Location
+- Status
+
+--------------------------------
+4. CANDIDATE DETAIL
+--------------------------------
+
+Create a detailed candidate profile.
+
+Sections:
+
+Profile
+Skill Passport
+Evidence
+Experience
+Projects
+Certifications
+Skill Match
+AI Explanation
+Fairness Check
+
+Add a visual comparison:
+
+Candidate Skills       Job Requirements
+React        ✓         React ✓
+Testing      △         Testing ✓
+Figma        ✓         Figma ✓
+
+Show:
+“Why this candidate was recommended”
+
+This is extremely important for our project.
+
+--------------------------------
+5. BIAS AUDIT
+--------------------------------
+
+Create a professional governance dashboard.
+
+Headline:
+
+“Review the signal, not the shortcut.”
+
+Show:
+
+Overall Fairness Score
+Credential Bias
+Geographic Bias
+Career Gap Influence
+Skill-based Decision %
+
+Use charts and indicators.
+
+Add alerts:
+
+Career gap influence: LOW
+Credential bias: MEDIUM
+Geographic concentration: LOW
+
+Create a “Human Review Required” section.
+
+Make it clear that AI recommends — humans make the final decision.
+
+--------------------------------
+6. ANALYTICS
+--------------------------------
+
+Create a highly visual analytics dashboard.
+
+Charts:
+
+Hiring Funnel
+Skill Demand
+Candidate Quality
+Shortlisting Rate
+Time to Shortlist
+Skill Gap Distribution
+Fairness Trend
+
+Use interactive tooltips and filters:
+
+7 days
+30 days
+90 days
+
+Use realistic mock data.
+
+Charts should actually render using a React chart library.
+
+--------------------------------
+7. SUBSCRIPTION
+--------------------------------
+
+Create a professional SaaS subscription page.
+
+Plans:
+
+Starter
+Growth
+Enterprise
+
+Show:
+
+Candidates analyzed
+Active jobs
+AI analysis
+Analytics
+Bias Audit
+Skill Intelligence
+
+Create monthly/yearly toggle.
+
+Use mock upgrade interaction only.
+
+Also create:
+Billing History
+Current Plan
+Usage
+Payment Method
+
+No real payment integration.
+
+==================================================
+3D / VISUAL DESIGN
+==================================================
+
+Introduce subtle 3D-style UI elements without making the product look like a gaming website.
+
+Examples:
+
+- Floating 3D skill nodes
+- Layered skill cards
+- Depth-based dashboard cards
+- 3D-style circular readiness score
+- Floating career signal visualization
+- Interactive candidate/job connection graph
+- Isometric SAP architecture
+- Soft perspective effects
+
+Use CSS transforms and lightweight SVG/CSS where possible.
+
+Avoid heavy 3D libraries unless absolutely necessary.
+
+The 3D elements should communicate:
+skills → connections → opportunities
+
+not simply exist for decoration.
+
+==================================================
+INTERACTION & MICRO UX
+==================================================
+
+Every important button should work visually.
+
+Examples:
+
+“View Match”
+→ opens match details
+
+“Improve Profile”
+→ opens profile improvement drawer
+
+“Open Bias Audit”
+→ opens bias dashboard
+
+“Create Role”
+→ opens wizard
+
+“View Candidate”
+→ opens candidate profile
+
+“Continue Learning”
+→ opens roadmap
+
+“Ask Copilot”
+→ opens chat interface
+
+Add realistic loading states and success states.
+
+==================================================
+RESPONSIVE DESIGN
+==================================================
+
+Desktop:
+Full sidebar + dashboard.
+
+Tablet:
+Collapsible sidebar.
+
+Mobile:
+Bottom navigation or compact drawer.
+
+Cards should stack naturally.
+
+Charts must resize correctly.
+
+Tables should become mobile-friendly cards.
+
+Never allow horizontal overflow.
+
+==================================================
+ACCESSIBILITY
+==================================================
+
+Implement:
+
+- semantic HTML
+- keyboard navigation
+- visible focus states
+- proper contrast
+- ARIA labels where needed
+- accessible buttons
+- reduced-motion support
+
+==================================================
+PERFORMANCE
+==================================================
+
+Frontend only, but still follow good practices:
+
+- lazy load heavy components
+- optimize images
+- avoid unnecessary re-renders
+- reusable React components
+- clean component structure
+- responsive CSS
+- avoid unnecessary dependencies
+
+==================================================
+SEO & SECURITY
+==================================================
+
+Since this is a frontend prototype:
+
+Implement basic:
+- page titles
+- meta descriptions
+- semantic structure
+- safe mock data
+- no exposed API keys
+- no real personal data
+
+==================================================
+IMPORTANT PRODUCT STORY
+==================================================
+
+The UI should communicate our core idea throughout the product:
+
+Traditional hiring asks:
+“Does this resume look right?”
+
+ReturnPath asks:
+“What can this person actually do, what are they missing, and can we help close that gap?”
+
+Core loop:
+
+DISCOVER SKILLS
+      ↓
+VERIFY SKILLS
+      ↓
+MATCH TO ROLE
+      ↓
+EXPLAIN DECISION
+      ↓
+IDENTIFY GAP
+      ↓
+LEARN
+      ↓
+REASSESS
+      ↓
+OPPORTUNITY
+
+Make this concept visible throughout the UI.
+
+==================================================
+FINAL QUALITY BAR
+==================================================
+
+The final product should look like a serious enterprise startup product that could be shown to:
+
+- SAP jury
+- HR leaders
+- recruiters
+- investors
+- candidates
+
+It should NOT look like a student CRUD project.
+
+Prioritize:
+1. Visual storytelling
+2. Excellent UX
+3. Clear product differentiation
+4. Interactive dashboards
+5. Skills-first matching
+6. Inclusive hiring
+7. Explainable AI
+8. Bias awareness
+9. Candidate + recruiter experience
+10. SAP architecture visualization
+
+Use realistic mock data throughout.
+
+Make the first screen immediately impressive, but ensure every page tells part of the ReturnPath story.
+
+Most importantly:
+DO NOT build backend functionality at this stage.
+Build a polished, interactive React prototype with simulated data and interactions only.
