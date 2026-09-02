@@ -33,25 +33,31 @@ candidateRouter.post("/onboarding/resume", async (req, res) => {
     const authenticatedUserId = res.locals.userId as string;
     const { text, filename, fileBase64 } = req.body;
 
-    let resumeText =
-      text && typeof text === "string" && text.trim().length > 5
-        ? text.trim()
-        : "";
+    let resumeText = "";
 
-    if ((!resumeText || resumeText.length < 15) && typeof fileBase64 === "string" && fileBase64.length > 20) {
+    // 1. If base64 binary is provided (PDF/document upload), ALWAYS prioritize server-side extraction
+    if (typeof fileBase64 === "string" && fileBase64.length > 20) {
       try {
         const buffer = Buffer.from(fileBase64, "base64");
-        const serverExtracted = extractTextFromPdfBuffer(buffer);
-        if (serverExtracted && serverExtracted.length > 15) {
-          resumeText = serverExtracted;
+        const serverExtracted = await extractTextFromPdfBuffer(buffer);
+        if (serverExtracted && serverExtracted.trim().length > 20) {
+          resumeText = serverExtracted.trim();
         }
       } catch (e: any) {
         console.warn("Server PDF base64 decode failed:", e.message);
       }
     }
 
-    if (!resumeText) {
-      resumeText = "Candidate profile and technical experience.";
+    // 2. Fallback to client-provided text (pasted text or direct plain text)
+    if (!resumeText && text && typeof text === "string" && text.trim().length > 20) {
+      resumeText = text.trim();
+    }
+
+    if (!resumeText || resumeText.length < 20) {
+      return res.status(400).json({
+        success: false,
+        error: "No readable resume content found in the uploaded file. Please ensure it is a valid PDF or paste your resume text.",
+      });
     }
 
     const extracted = await skillsDiscoveryAgent.extractSkills(resumeText, getGroqKey());
@@ -327,22 +333,27 @@ candidateRouter.post("/profile/sync-resume", async (req, res) => {
     const { text, currentProfile, filename, fileBase64 } = req.body;
     const groqKey = getGroqKey();
 
-    let resumeText =
-      text && typeof text === "string" && text.trim().length > 5 ? text.trim() : "";
+    let resumeText = "";
 
-    if ((!resumeText || resumeText.length < 15) && typeof fileBase64 === "string" && fileBase64.length > 20) {
+    // 1. If base64 binary is provided (PDF/document upload), ALWAYS prioritize server-side extraction
+    if (typeof fileBase64 === "string" && fileBase64.length > 20) {
       try {
         const buffer = Buffer.from(fileBase64, "base64");
-        const serverExtracted = extractTextFromPdfBuffer(buffer);
-        if (serverExtracted && serverExtracted.length > 15) {
-          resumeText = serverExtracted;
+        const serverExtracted = await extractTextFromPdfBuffer(buffer);
+        if (serverExtracted && serverExtracted.trim().length > 20) {
+          resumeText = serverExtracted.trim();
         }
       } catch (e: any) {
         console.warn("Server PDF base64 decode failed:", e.message);
       }
     }
 
-    if (!resumeText) {
+    // 2. Fallback to client-provided text
+    if (!resumeText && text && typeof text === "string" && text.trim().length > 20) {
+      resumeText = text.trim();
+    }
+
+    if (!resumeText || resumeText.length < 20) {
       return res
         .status(400)
         .json({ success: false, error: "No readable resume content found. Please provide text or a valid document." });

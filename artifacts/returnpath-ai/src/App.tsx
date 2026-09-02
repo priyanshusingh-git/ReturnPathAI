@@ -18,6 +18,12 @@ import {
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Link, Route, Switch, Router as WouterRouter, useLocation, useParams } from 'wouter';
 import NotFound from '@/pages/not-found';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+
+if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+}
 
 const queryClient = new QueryClient();
 
@@ -219,9 +225,39 @@ async function extractDocxText(uint8: Uint8Array): Promise<string> {
 }
 
 /**
- * Extracts plain text from PDF bytes
+ * Extracts plain text from PDF bytes directly on the client using Mozilla's pdfjs-dist
  */
 async function extractPdfText(uint8: Uint8Array): Promise<string> {
+  // 1. Primary: Use pdfjs-dist directly in browser
+  try {
+    const loadingTask = pdfjsLib.getDocument({
+      data: uint8,
+      useSystemFonts: true,
+      disableFontFace: true,
+    });
+    const doc = await loadingTask.promise;
+    let fullText = '';
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      const pageStrings = content.items
+        .map((item: any) => (item.str ? item.str : ''))
+        .filter(Boolean);
+      fullText += pageStrings.join(' ') + '\n';
+    }
+    const clean = fullText
+      .replace(/[^\x20-\x7E\n\r\t\u00C0-\u024F]/g, ' ')
+      .replace(/[ \t]{3,}/g, '  ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    if (clean.length > 20) {
+      return clean;
+    }
+  } catch (err) {
+    console.warn('pdfjs-dist client extraction failed, falling back:', err);
+  }
+
+  // 2. Fallback: manual decompression
   const textPieces: string[] = [];
   try {
     const rawLatin = new TextDecoder('latin1').decode(uint8);
@@ -2088,12 +2124,18 @@ function CandidateOnboarding() {
 
   // Profile data collected across any pathway — initialized cleanly with logged-in user data
   const [profile, setProfile] = useState<CandidateProfileData>(() => {
-    // Use the stored profile only if it has real user data (name or skills)
-    if (p.profile.name && p.profile.name.trim().length > 0) return p.profile;
+    // Purge mock phone or mock caregiving summary from previous sessions
+    if (p.profile.phone?.includes('98765') || p.profile.summary?.includes('caregiving') || p.profile.summary?.includes('Strategic Product Operations')) {
+      return createCleanProfile(user?.fullName || user?.firstName || '', user?.primaryEmailAddress?.emailAddress || '');
+    }
+    if (p.profile.name && p.profile.name.trim().length > 0 && p.profile.name !== 'Candidate') return p.profile;
     return createCleanProfile(user?.fullName || user?.firstName || '', user?.primaryEmailAddress?.emailAddress || '');
   });
 
   const [isChatComplete, setIsChatComplete] = useState(false);
+
+  // Separately store extracted data so review always shows fresh extraction, not stale context profile
+  const [extractedProfile, setExtractedProfile] = useState<CandidateProfileData | null>(null);
 
   // Resume Upload State
   const [resumeText, setResumeText] = useState('');
@@ -2192,27 +2234,37 @@ function CandidateOnboarding() {
       if (json?.data) {
         const d = json.data;
         const updated: CandidateProfileData = {
-          ...profile,
-          name: d.candidateName || user?.fullName || user?.firstName || profile.name,
-          email: d.email || user?.primaryEmailAddress?.emailAddress || profile.email,
-          phone: d.phone || profile.phone,
-          location: d.location || profile.location,
-          summary: d.summary || profile.summary,
-          targetRole: d.targetRole || profile.targetRole,
-          targetCompany: d.targetCompany || profile.targetCompany,
-          workMode: d.workMode || profile.workMode,
-          careerBreakYears: d.careerBreakYears ?? profile.careerBreakYears,
-          breakContext: d.breakContext || profile.breakContext,
-          skills: d.extractedSkills ? d.extractedSkills.map((s: any) => s.name) : profile.skills,
-          education: d.education || profile.education,
-          projects: d.projects || profile.projects,
-          experience: d.experience || profile.experience,
-          certifications: d.certifications || profile.certifications,
-          achievements: d.achievements || profile.achievements,
-          topStrengths: d.topStrengths || profile.topStrengths
+          ...createCleanProfile(
+            d.candidateName && d.candidateName !== 'Candidate' ? d.candidateName : (user?.fullName || user?.firstName || ''),
+            d.email || user?.primaryEmailAddress?.emailAddress || ''
+          ),
+          phone: d.phone || '',
+          location: d.location || 'India',
+          summary: d.summary || '',
+          targetRole: d.targetRole || 'Software Engineer',
+          targetCompany: d.targetCompany || 'SAP Labs India',
+          workMode: d.workMode || 'Hybrid',
+          careerBreakYears: 0,
+          breakContext: '',
+          skills: d.extractedSkills && d.extractedSkills.length > 0
+            ? d.extractedSkills.map((s: any) => typeof s === 'string' ? s : s.name).filter(Boolean)
+            : (d.skills && d.skills.length > 0 ? d.skills : []),
+          education: d.education && d.education.length > 0 ? d.education : [],
+          projects: d.projects && d.projects.length > 0 ? d.projects : [],
+          experience: d.experience && d.experience.length > 0 ? d.experience : [],
+          certifications: d.certifications && d.certifications.length > 0 ? d.certifications : [],
+          achievements: d.achievements && d.achievements.length > 0 ? d.achievements : [],
+          topStrengths: d.topStrengths && d.topStrengths.length > 0 ? d.topStrengths : []
         };
+        // Store separately so the review stage always shows fresh extracted data
+        setExtractedProfile(updated);
         setProfile(updated);
         await p.updateProfile(updated);
+      } else {
+        setOnboardError('The server returned a successful response but no extracted profile data was found. Please try again or paste your resume text.');
+        setUploadStage('idle');
+        setLoading(false);
+        return;
       }
       setUploadStage('review');
     } catch (e: any) {
@@ -2465,17 +2517,20 @@ function CandidateOnboarding() {
                 <RefreshCcw size={32} className="mx-auto animate-spin text-[hsl(var(--primary))]" />
                 <h2 className="mt-4 font-display text-2xl font-semibold">Extracting & Verifying Capabilities</h2>
                 <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">
-                  Evaluating skills, projects, and background in SAP Talent Intelligence Hub...
+                  Evaluating skills, projects, and background...
                 </p>
               </section>
             )}
 
-            {uploadStage === 'review' && (
+            {uploadStage === 'review' && extractedProfile && (
               <section className="surface rounded-2xl p-6 sm:p-8">
                 <div className="flex items-center justify-between">
                   <div>
                     <Badge tone="good"><CheckCircle2 size={12} className="mr-1" /> Profile Extracted</Badge>
                     <h2 className="mt-2 font-display text-2xl font-semibold">Review Extracted Profile</h2>
+                    <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                      Confirm the details extracted from your resume are correct before continuing.
+                    </p>
                   </div>
                   <button
                     onClick={() => setUploadStage('idle')}
@@ -2485,21 +2540,31 @@ function CandidateOnboarding() {
                   </button>
                 </div>
 
-                <div className="mt-6 space-y-4">
+                <div className="mt-6 space-y-5">
+                  {/* Identity */}
+                  <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--muted))]/40 p-4 space-y-1">
+                    <p className="text-xs font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wide">Candidate Identity</p>
+                    <p className="font-semibold text-lg">{extractedProfile.name}</p>
+                    {extractedProfile.email && <p className="text-xs text-[hsl(var(--muted-foreground))]">📧 {extractedProfile.email}</p>}
+                    {extractedProfile.phone && <p className="text-xs text-[hsl(var(--muted-foreground))]">📞 {extractedProfile.phone}</p>}
+                    {extractedProfile.location && <p className="text-xs text-[hsl(var(--muted-foreground))]">📍 {extractedProfile.location}</p>}
+                  </div>
+
+                  {/* Editable fields */}
                   <div className="grid gap-4 sm:grid-cols-2">
                     <label className="grid gap-2 text-xs font-semibold">
                       Target Role
                       <input
-                        value={profile.targetRole}
-                        onChange={e => setProfile({ ...profile, targetRole: e.target.value })}
+                        value={extractedProfile.targetRole}
+                        onChange={e => { const u = { ...extractedProfile, targetRole: e.target.value }; setExtractedProfile(u); setProfile(u); }}
                         className="h-11 rounded-lg border border-[hsl(var(--input))] bg-transparent px-3 text-sm font-normal"
                       />
                     </label>
                     <label className="grid gap-2 text-xs font-semibold">
                       Target Company / Industry
                       <input
-                        value={profile.targetCompany}
-                        onChange={e => setProfile({ ...profile, targetCompany: e.target.value })}
+                        value={extractedProfile.targetCompany}
+                        onChange={e => { const u = { ...extractedProfile, targetCompany: e.target.value }; setExtractedProfile(u); setProfile(u); }}
                         className="h-11 rounded-lg border border-[hsl(var(--input))] bg-transparent px-3 text-sm font-normal"
                       />
                     </label>
@@ -2508,49 +2573,85 @@ function CandidateOnboarding() {
                   <label className="grid gap-2 text-xs font-semibold">
                     Professional Summary
                     <textarea
-                      value={profile.summary || profile.breakContext}
-                      onChange={e => setProfile({ ...profile, summary: e.target.value, breakContext: e.target.value })}
+                      value={extractedProfile.summary || extractedProfile.breakContext}
+                      onChange={e => { const u = { ...extractedProfile, summary: e.target.value, breakContext: e.target.value }; setExtractedProfile(u); setProfile(u); }}
                       className="min-h-20 rounded-lg border border-[hsl(var(--input))] bg-transparent p-3 text-sm font-normal"
                     />
                   </label>
 
-                  <div>
-                    <p className="text-xs font-semibold">Extracted Verified Skills</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {profile.skills.map(s => (
-                        <Badge key={s} tone="good">
-                          <Check size={11} className="mr-1" /> {s}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Extracted Projects Preview */}
-                  {profile.projects && profile.projects.length > 0 && (
+                  {/* Skills */}
+                  {extractedProfile.skills && extractedProfile.skills.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-[hsl(var(--muted-foreground))]">Extracted Projects & Artifacts</p>
+                      <p className="text-xs font-semibold">Extracted Verified Skills ({extractedProfile.skills.length})</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {extractedProfile.skills.map((s, i) => (
+                          <Badge key={`${s}-${i}`} tone="good">
+                            <Check size={11} className="mr-1" /> {s}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Projects */}
+                  {extractedProfile.projects && extractedProfile.projects.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-[hsl(var(--muted-foreground))]">Extracted Projects &amp; Artifacts ({extractedProfile.projects.length})</p>
                       <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                        {profile.projects.map((p, i) => (
+                        {extractedProfile.projects.map((proj, i) => (
                           <div key={i} className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-2.5 text-xs">
-                            <p className="font-semibold text-sm">{p.title}</p>
-                            <p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">{p.description}</p>
+                            <p className="font-semibold text-sm">{proj.title}</p>
+                            {proj.techStack && proj.techStack.length > 0 && (
+                              <p className="mt-0.5 text-[10px] text-[hsl(var(--primary))]">{proj.techStack.join(', ')}</p>
+                            )}
+                            <p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">{proj.description}</p>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Extracted Education Preview */}
-                  {profile.education && profile.education.length > 0 && (
+                  {/* Education */}
+                  {extractedProfile.education && extractedProfile.education.length > 0 && (
                     <div>
                       <p className="text-xs font-semibold text-[hsl(var(--muted-foreground))]">Extracted Academic Education</p>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {profile.education.map((e, i) => (
+                        {extractedProfile.education.map((edu, i) => (
                           <div key={i} className="rounded-lg bg-[hsl(var(--muted))] px-3 py-1.5 text-xs">
-                            <span className="font-semibold">{e.degree}</span> · {e.institution} ({e.year})
+                            <span className="font-semibold">{edu.degree}</span> · {edu.institution} ({edu.year}){edu.score ? ` · ${edu.score}` : ''}
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Certifications */}
+                  {extractedProfile.certifications && extractedProfile.certifications.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-[hsl(var(--muted-foreground))]">Certifications</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {extractedProfile.certifications.map((cert, i) => (
+                          <div key={i} className="rounded-lg bg-[hsl(var(--secondary))] px-3 py-1.5 text-xs">
+                            <span className="font-semibold">{cert.name}</span>
+                            {cert.issuer ? ` · ${cert.issuer}` : ''}{cert.year ? ` (${cert.year})` : ''}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Achievements */}
+                  {extractedProfile.achievements && extractedProfile.achievements.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-[hsl(var(--muted-foreground))]">Achievements</p>
+                      <ul className="mt-2 space-y-1">
+                        {extractedProfile.achievements.map((ach, i) => (
+                          <li key={i} className="flex items-start gap-2 text-xs">
+                            <span className="mt-0.5 text-[hsl(var(--primary))]">✦</span>
+                            <span>{ach}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>
@@ -2871,13 +2972,25 @@ function Resume() {
         fileObj = fileOrEvent;
       }
 
+      let fileBase64 = '';
       if (fileObj) {
-        textToSend = await extractTextFromFile(fileObj);
+        try {
+          textToSend = await extractTextFromFile(fileObj);
+        } catch {}
+        try {
+          const buffer = await fileObj.arrayBuffer();
+          const bytes = new Uint8Array(buffer);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          fileBase64 = btoa(binary);
+        } catch {}
       } else {
         textToSend = p.profile.summary || (p.profile.skills.length > 0 ? `${p.profile.name} - ${p.profile.targetRole} with skills in ${p.profile.skills.join(', ')}` : '');
       }
 
-      if (!textToSend || textToSend.trim().length < 5) {
+      if ((!textToSend || textToSend.trim().length < 5) && !fileBase64) {
         const msg = 'Please upload a resume file (PDF, DOCX, TXT) to extract your capabilities.';
         setError(msg);
         p.notify(msg);
@@ -2891,6 +3004,7 @@ function Resume() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: textToSend,
+          fileBase64,
           filename: fileObj?.name || 'resume.pdf',
           userId: user?.id
         })
@@ -3620,8 +3734,17 @@ function App() {
       const stored = localStorage.getItem('rp-profile');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed && typeof parsed === 'object' && (parsed.name || parsed.skills?.length)) {
-          return parsed;
+        if (parsed && typeof parsed === 'object') {
+          // If stored profile contains old mock data from previous sessions, purge it!
+          const phone = parsed.phone || '';
+          const summary = parsed.summary || '';
+          if (phone.includes('98765') || summary.includes('caregiving') || summary.includes('Strategic Product Operations')) {
+            localStorage.removeItem('rp-profile');
+            return createCleanProfile('', '');
+          }
+          if (parsed.name || parsed.skills?.length) {
+            return parsed;
+          }
         }
       }
     } catch {}

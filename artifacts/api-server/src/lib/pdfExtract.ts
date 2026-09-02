@@ -1,10 +1,22 @@
 import zlib from "node:zlib";
 import { createRequire } from "node:module";
 
-const require = createRequire(import.meta.url);
+const _require = createRequire(import.meta.url);
 
 /**
- * Clean raw PDF literal string
+ * Sanitizes raw PDF text — strips non-printable binary characters,
+ * keeps unicode letters, numbers, punctuation, and whitespace.
+ */
+function sanitizePdfText(raw: string): string {
+  return raw
+    .replace(/[^\x20-\x7E\n\r\t\u00C0-\u024F\u0370-\u03FF\u0400-\u04FF]/g, " ")
+    .replace(/[ \t]{3,}/g, "  ")
+    .replace(/\n{4,}/g, "\n\n")
+    .trim();
+}
+
+/**
+ * Clean raw PDF literal string from operator sequences
  */
 function cleanPdfString(raw: string): string {
   return raw
@@ -17,28 +29,10 @@ function cleanPdfString(raw: string): string {
 }
 
 /**
- * Decode PDF hexadecimal string <48656c6c6f>
+ * Fallback: Manual zlib stream decompression parser for PDFs
  */
-function decodeHexPdf(hex: string): string {
-  let str = "";
-  const cleanHex = hex.replace(/\s+/g, "");
-  for (let i = 0; i < cleanHex.length; i += 2) {
-    const code = parseInt(cleanHex.substr(i, 2), 16);
-    if (!isNaN(code) && code >= 32 && code <= 126) {
-      str += String.fromCharCode(code);
-    } else if (code === 10 || code === 13 || code === 9) {
-      str += " ";
-    }
-  }
-  return str.trim();
-}
-
-/**
- * Fallback stream decompression parser
- */
-function extractTextFromPdfBufferFallback(buffer: Buffer): string {
+function extractFromPdfFallback(buffer: Buffer): string {
   const textPieces: string[] = [];
-
   try {
     let startIdx = 0;
     while ((startIdx = buffer.indexOf("stream", startIdx)) !== -1) {
@@ -48,120 +42,83 @@ function extractTextFromPdfBufferFallback(buffer: Buffer): string {
       } else if (buffer[dataStart] === 0x0a || buffer[dataStart] === 0x0d) {
         dataStart += 1;
       }
-
       const endIdx = buffer.indexOf("endstream", dataStart);
       if (endIdx === -1) break;
-
       const streamBytes = buffer.subarray(dataStart, endIdx);
       startIdx = endIdx + 9;
-
       if (streamBytes.length === 0) continue;
 
       let decompressed: Buffer | null = null;
-      try {
-        decompressed = zlib.inflateSync(streamBytes);
-      } catch {
-        try {
-          decompressed = zlib.inflateRawSync(streamBytes);
-        } catch {
+      try { decompressed = zlib.inflateSync(streamBytes); } catch {
+        try { decompressed = zlib.inflateRawSync(streamBytes); } catch {
           if (streamBytes[0] === 0x78) {
-            try {
-              decompressed = zlib.inflateRawSync(streamBytes.subarray(2));
-            } catch {}
+            try { decompressed = zlib.inflateRawSync(streamBytes.subarray(2)); } catch {}
           }
         }
       }
 
       const contentStr = (decompressed || streamBytes).toString("latin1");
 
-      // Extract (text) Tj
-      const tjMatches = contentStr.match(/\(((?:[^()\\]|\\.)*)\)\s*Tj/g) || [];
-      for (const m of tjMatches) {
+      // (text) Tj
+      for (const m of contentStr.match(/\(((?:[^()\\]|\\.)*)\)\s*Tj/g) || []) {
         const inner = m.match(/^\(((?:[^()\\]|\\.)*)\)\s*Tj$/);
-        if (inner && inner[1]) {
-          const clean = cleanPdfString(inner[1]);
-          if (clean.length > 0) textPieces.push(clean);
-        }
+        if (inner?.[1]) { const c = cleanPdfString(inner[1]); if (c.length > 0) textPieces.push(c); }
       }
-
-      // Extract <hex> Tj
-      const hexTjMatches = contentStr.match(/<([0-9a-fA-F\s]{4,})>\s*Tj/g) || [];
-      for (const m of hexTjMatches) {
-        const inner = m.match(/^<([0-9a-fA-F\s]{4,})>\s*Tj$/);
-        if (inner && inner[1]) {
-          const clean = decodeHexPdf(inner[1]);
-          if (clean.length > 0) textPieces.push(clean);
-        }
+      // [(text)] TJ
+      for (const m of contentStr.match(/\[([\s\S]*?)\]\s*TJ/g) || []) {
+        const inners = m.slice(1, -3).match(/\(((?:[^()\\]|\\.)*)\)/g) || [];
+        const combined = inners.map(s => cleanPdfString(s.slice(1, -1))).join("");
+        if (combined.trim()) textPieces.push(combined.trim());
       }
-
-      // Extract [(text)] TJ
-      const tjArrMatches = contentStr.match(/\[([\s\S]*?)\]\s*TJ/g) || [];
-      for (const m of tjArrMatches) {
-        const rawArray = m.slice(1, -3);
-        const inners = rawArray.match(/\(((?:[^()\\]|\\.)*)\)/g) || [];
-        if (inners.length > 0) {
-          const combined = inners.map(s => cleanPdfString(s.slice(1, -1))).join("");
-          if (combined.trim().length > 0) textPieces.push(combined.trim());
-        }
-        const hexInners = rawArray.match(/<([0-9a-fA-F\s]{4,})>/g) || [];
-        if (hexInners.length > 0) {
-          const combinedHex = hexInners.map(s => decodeHexPdf(s.slice(1, -1))).join("");
-          if (combinedHex.trim().length > 0) textPieces.push(combinedHex.trim());
-        }
-      }
-
-      // Extract text in between BT ... ET
-      const btMatches = contentStr.match(/BT[\s\S]*?ET/g) || [];
-      for (const bt of btMatches) {
-        const strMatches = bt.match(/\(((?:[^()\\]|\\.)*)\)/g) || [];
-        for (const s of strMatches) {
-          const clean = cleanPdfString(s.slice(1, -1));
-          if (clean.length > 1 && !clean.startsWith("/") && /[a-zA-Z0-9]/.test(clean)) {
-            textPieces.push(clean);
-          }
+      // BT ... ET blocks
+      for (const bt of contentStr.match(/BT[\s\S]*?ET/g) || []) {
+        for (const s of bt.match(/\(((?:[^()\\]|\\.)*)\)/g) || []) {
+          const c = cleanPdfString(s.slice(1, -1));
+          if (c.length > 1 && !c.startsWith("/") && /[a-zA-Z0-9]/.test(c)) textPieces.push(c);
         }
       }
     }
 
+    // Fallback parenthesis scan
     const rawLatin = buffer.toString("latin1");
-    const parenMatches = rawLatin.match(/\(([^\r\n()]{3,200})\)/g) || [];
-    for (const p of parenMatches) {
-      const clean = cleanPdfString(p.slice(1, -1));
-      if (clean.length > 2 && /[a-zA-Z0-9]/.test(clean) && !clean.startsWith("/") && !clean.startsWith("Font")) {
-        textPieces.push(clean);
+    for (const p of rawLatin.match(/\(([^\r\n()]{3,200})\)/g) || []) {
+      const c = cleanPdfString(p.slice(1, -1));
+      if (c.length > 2 && /[a-zA-Z0-9]/.test(c) && !c.startsWith("/") && !c.startsWith("Font")) {
+        textPieces.push(c);
       }
     }
 
     if (textPieces.length < 5) {
       const words = rawLatin.match(/[a-zA-Z0-9@:/.#+_-]{3,}/g) || [];
-      const cleanWords = words.filter(w => !/^(obj|endobj|stream|endstream|xref|trailer|startxref|Filter|FlateDecode|Length)$/i.test(w));
-      if (cleanWords.length > 10) {
-        textPieces.push(...cleanWords);
-      }
+      textPieces.push(...words.filter(w => !/^(obj|endobj|stream|endstream|xref|trailer|startxref|Filter|FlateDecode|Length)$/i.test(w)));
     }
   } catch (err) {
-    console.warn("Server PDF fallback extraction error:", err);
+    console.warn("PDF fallback extraction error:", err);
   }
 
-  if (textPieces.length > 0) {
-    return textPieces.join(" ").replace(/\s+/g, " ").trim();
-  }
-  return "";
+  return textPieces.length > 0
+    ? textPieces.join(" ").replace(/\s+/g, " ").trim()
+    : "";
 }
 
 /**
- * Extracts plain text from a PDF Buffer using pdf-parse with fallback
+ * Extracts plain text from a PDF Buffer.
+ * Primary: pdf-parse@1.1.1 (uses pdfjs under the hood, handles fonts, CIDFonts, encoding)
+ * Fallback: manual zlib stream decompression
  */
 export async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> {
   try {
-    const pdfParse = require("pdf-parse");
-    const data = await pdfParse(buffer);
-    if (data && typeof data.text === "string" && data.text.trim().length > 20) {
-      return data.text.trim();
+    const pdfParse = _require("pdf-parse");
+    if (typeof pdfParse === "function") {
+      const data = await pdfParse(buffer, { max: 0 });
+      if (data?.text && data.text.trim().length > 20) {
+        return sanitizePdfText(data.text);
+      }
     }
   } catch (err) {
-    console.warn("pdf-parse library notice:", err);
+    console.warn("pdf-parse error, using fallback:", (err as Error).message);
   }
 
-  return extractTextFromPdfBufferFallback(buffer);
+  const fallback = extractFromPdfFallback(buffer);
+  return fallback ? sanitizePdfText(fallback) : "";
 }
