@@ -62,8 +62,10 @@ app.use(
     },
   })
 );
-app.use(express.json({ limit: "256kb" }));
-app.use(express.urlencoded({ extended: true, limit: "256kb" }));
+// Resume uploads are sent as JSON with an optional base64 payload. Keep the
+// limit large enough for normal PDF/DOCX files without accepting unbounded data.
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.use(
   clerkMiddleware((req) => ({

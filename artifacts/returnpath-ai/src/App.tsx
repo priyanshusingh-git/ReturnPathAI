@@ -2205,8 +2205,8 @@ function CandidateOnboarding() {
           breakContext: d.breakContext || profile.breakContext,
           skills: d.extractedSkills ? d.extractedSkills.map((s: any) => s.name) : profile.skills,
           education: d.education || profile.education,
-          projects: d.projects || profile.projects,
-          experience: d.experience || profile.experience,
+          projects: d.projects || p.profile.projects,
+          experience: d.experience || p.profile.experience,
           certifications: d.certifications || profile.certifications,
           achievements: d.achievements || profile.achievements,
           topStrengths: d.topStrengths || profile.topStrengths
@@ -2919,12 +2919,12 @@ function Resume() {
           targetCompany: d.targetCompany || p.profile.targetCompany,
           skills: d.extractedSkills ? d.extractedSkills.map((s: any) => typeof s === 'string' ? s : s.name) : p.profile.skills,
           education: d.education || p.profile.education,
-          projects: d.projects || profile.projects,
-          experience: d.experience || profile.experience,
-          certifications: d.certifications || profile.certifications,
-          achievements: d.achievements || profile.achievements,
-          breakContext: d.breakContext || profile.breakContext,
-          careerBreakYears: d.careerBreakYears ?? profile.careerBreakYears,
+          projects: d.projects || p.profile.projects,
+          experience: d.experience || p.profile.experience,
+          certifications: d.certifications || p.profile.certifications,
+          achievements: d.achievements || p.profile.achievements,
+          breakContext: d.breakContext || p.profile.breakContext,
+          careerBreakYears: d.careerBreakYears ?? p.profile.careerBreakYears,
           readinessRating: d.readinessRating || 88
         });
         p.notify('Resume analyzed and verified in SAP Talent Intelligence Hub.');

@@ -38,10 +38,11 @@ candidateRouter.post("/onboarding/resume", async (req, res) => {
         ? text.trim()
         : "";
 
-    if ((!resumeText || resumeText.length < 15) && typeof fileBase64 === "string" && fileBase64.length > 20) {
+    const isPdf = typeof filename === "string" && /\.pdf$/i.test(filename);
+    if (isPdf && typeof fileBase64 === "string" && fileBase64.length > 20) {
       try {
         const buffer = Buffer.from(fileBase64, "base64");
-        const serverExtracted = extractTextFromPdfBuffer(buffer);
+        const serverExtracted = await extractTextFromPdfBuffer(buffer);
         if (serverExtracted && serverExtracted.length > 15) {
           resumeText = serverExtracted;
         }
@@ -330,10 +331,11 @@ candidateRouter.post("/profile/sync-resume", async (req, res) => {
     let resumeText =
       text && typeof text === "string" && text.trim().length > 5 ? text.trim() : "";
 
-    if ((!resumeText || resumeText.length < 15) && typeof fileBase64 === "string" && fileBase64.length > 20) {
+    const isPdf = typeof filename === "string" && /\.pdf$/i.test(filename);
+    if (isPdf && typeof fileBase64 === "string" && fileBase64.length > 20) {
       try {
         const buffer = Buffer.from(fileBase64, "base64");
-        const serverExtracted = extractTextFromPdfBuffer(buffer);
+        const serverExtracted = await extractTextFromPdfBuffer(buffer);
         if (serverExtracted && serverExtracted.length > 15) {
           resumeText = serverExtracted;
         }
